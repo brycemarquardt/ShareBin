@@ -1,13 +1,10 @@
 {
-	"fileSizeLimitMB":  9999999,
-	"textSizeLimitMB": 10,
-	"streamSizeLimitKB": 1024,
-	"streamThrottleMS": 25,
-
-	"pbkdf2Iterations": 10000,
-	
-	"cmdUploadDefaultDurationMinute" : 10,
-	
-	"enablePassword" : false,
-	"password" : "password"
+    "FileSizeLimitMB": 9999999,
+    "TextSizeLimitMB": 10,
+    "StreamSizeLimitKB": 1024,
+    "StreamThrottleMS": 25,
+    "Pbkdf2Iteraions": 10000,
+    "CmdUploadDefaultDurationMinute": 10,
+    "enablePassword": false,
+    "password": "password"
 }
