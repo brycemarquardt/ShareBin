@@ -3,6 +3,7 @@ package main
 import (
     "database/sql"
     "sort"
+    "strconv"
     "time"
 )
 
@@ -10,14 +11,15 @@ import (
 type Share struct {
     ID         string    `json:"id"`
     Type       string    `json:"type"`       // "file" or "text"
-    Size       int       `json:"size"`       // Size in bytes (derived or approximated)
+    Size       int       `json:"size"`       // Size in bytes (approximated if not stored)
     Expiration time.Time `json:"expiration"` // Expiration timestamp
 }
 
 // ListShares retrieves all shares from the SQLite 'data' table
 func ListShares(db *sql.DB) ([]Share, error) {
     var shares []Share
-    rows, err := db.Query("SELECT id, type, expire FROM data WHERE expire > ?", time.Now().Unix())
+    // Query non-expired shares; expire is TEXT, so we compare as string or convert
+    rows, err := db.Query("SELECT id, type, expire FROM data WHERE expire > ?", strconv.FormatInt(time.Now().Unix(), 10))
     if err != nil {
         return nil, err
     }
@@ -30,22 +32,17 @@ func ListShares(db *sql.DB) ([]Share, error) {
             continue
         }
         // Convert expire (TEXT) to time.Time
-        expireInt, err := parseExpiration(expireStr)
+        expireInt, err := strconv.ParseInt(expireStr, 10, 64)
         if err != nil {
+            // If expire isn’t a Unix timestamp, adjust parsing logic below
             continue
         }
         share.Expiration = time.Unix(expireInt, 0)
-        // Size isn’t in 'data' table; approximate or fetch from file if needed
-        share.Size = 0 // Placeholder; update if size is calculable
+        // Size isn’t in 'data'; set to 0 or calculate from filePath if needed
+        share.Size = 0 // Placeholder
         shares = append(shares, share)
     }
     return shares, nil
-}
-
-// parseExpiration converts the expire TEXT field to Unix timestamp
-func parseExpiration(expireStr string) (int64, error) {
-    // Assuming expire is stored as Unix timestamp string; adjust if format differs
-    return time.Parse("2006-01-02 15:04:05", expireStr).Unix()
 }
 
 // FilterSharesByType filters shares by type (e.g., "file" or "text")
