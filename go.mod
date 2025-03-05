@@ -1,4 +1,4 @@
-module app
+module app github.com/brycemarquardt/sharebin
 
 go 1.21.6
 
