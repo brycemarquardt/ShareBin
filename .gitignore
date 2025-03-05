@@ -1,6 +1,43 @@
+# Compiled binaries
 *.exe
 *.bat
+
+# Database files
 *.db
+
+# IDE and editor files
 .vscode
 .idea
+
+# Upload directory (user-generated content)
 uploads/
+
+# Go-specific files
+go.sum
+go.mod
+main
+
+# Temporary files and build artifacts
+*.tmp
+*.log
+
+# Dependency directories (if using vendor/)
+vendor/
+
+# MacOS-specific files
+.DS_Store
+
+# Windows-specific files
+Thumbs.db
+ehthumbs.db
+
+# Linux-specific files
+*~
+
+# Test coverage files
+coverage.out
+coverage.html
+
+# Docker-specific files (optional, if not tracked in version control)
+Dockerfile
+docker-compose.yaml
