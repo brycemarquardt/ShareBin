@@ -1,10 +1,7 @@
 package main
 
 import (
-    "encoding/json"
-    "io/fs"
-    "os"
-    "path/filepath"
+    "database/sql"
     "sort"
     "time"
 )
@@ -17,29 +14,23 @@ type Share struct {
     Expiration time.Time `json:"expiration"` // Expiration timestamp
 }
 
-// ListShares retrieves all shares from the uploads directory
-func ListShares() ([]Share, error) {
+// ListShares retrieves all shares from the SQLite database
+func ListShares(db *sql.DB) ([]Share, error) {
     var shares []Share
-    entries, err := os.ReadDir("uploads")
+    rows, err := db.Query("SELECT id, type, size, expiration FROM shares WHERE expiration > ?", time.Now().Unix())
     if err != nil {
         return nil, err
     }
-    for _, entry := range entries {
-        if entry.IsDir() {
-            metaPath := filepath.Join("uploads", entry.Name(), "meta.json")
-            metaFile, err := os.Open(metaPath)
-            if err != nil {
-                continue // Skip if meta.json is missing
-            }
-            var share Share
-            if err := json.NewDecoder(metaFile).Decode(&share); err != nil {
-                metaFile.Close()
-                continue
-            }
-            metaFile.Close()
-            share.ID = entry.Name() // Set ID from directory name
-            shares = append(shares, share)
+    defer rows.Close()
+
+    for rows.Next() {
+        var share Share
+        var expiration int64
+        if err := rows.Scan(&share.ID, &share.Type, &share.Size, &expiration); err != nil {
+            continue
         }
+        share.Expiration = time.Unix(expiration, 0)
+        shares = append(shares, share)
     }
     return shares, nil
 }
