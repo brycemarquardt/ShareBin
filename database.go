@@ -43,18 +43,5 @@ func InitDatabase() *sql.DB {
         return nil
     }
 
-    // Create the new 'shares' table for dashboard
-    createSharesTableSQL := `CREATE TABLE IF NOT EXISTS shares (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        size INTEGER NOT NULL,
-        expiration INTEGER NOT NULL
-    );`
-    _, err = db.Exec(createSharesTableSQL)
-    if err != nil {
-        fmt.Println("Failed to create shares table:", err)
-        return nil
-    }
-
     return db
 }
