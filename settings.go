@@ -21,7 +21,7 @@ type Setting struct {
     TextSizeLimit                  int64  `json:"TextSizeLimitMB"`
     StreamSizeLimit                int64  `json:"StreamSizeLimitKB"`
     StreamThrottle                 int64  `json:"StreamThrottleMS"`
-    Pbkdf2Iteraions                int    `json:"Pbkdf2Iteraions"`
+    Pbkdf2Iterations               int    `json:"Pbkdf2Iterations"` // Corrected spelling
     CmdUploadDefaultDurationMinute int64  `json:"CmdUploadDefaultDurationMinute"`
     EnablePassword                 bool   `json:"enablePassword"`
     Password                       string `json:"password"`
