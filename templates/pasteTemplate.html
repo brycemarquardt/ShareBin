@@ -1,65 +1,62 @@
 <!--
-This file is part of GigaPaste.
+This file is part of ShareBin.
 
-GigaPaste is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ShareBin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-GigaPaste is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ShareBin is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with GigaPaste. If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with ShareBin. If not, see <https://www.gnu.org/licenses/>.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="theme.css">
-	<link rel="stylesheet" href="style.css"></link>
-	<script src="helper.js"></script>
+    <link rel="stylesheet" href="/theme.css">
+    <link rel="stylesheet" href="/style.css">
+    <script src="/helper.js"></script> <!-- Ensure helper.js is served correctly -->
+    <script>
+        function copy() {
+            copyToClipboard(document.getElementById("text").textContent)
+        }
 
-	<script>
+        function getRawLink() {
+            const url = new URL(window.location.href);
+            if (url.search.length > 0) {
+                copyToClipboard(`${url.href}&raw=1`)
+            } else {
+                copyToClipboard(`${url.href}?raw=1`)
+            }
+        }
 
-		function copy(){
-
-			copyToClipboard(document.getElementById("text").textContent)
-
-		}
-
-		function getRawLink(){
-
-			if(new URL(window.location.href).search.length > 0){
-				copyToClipboard(window.location.href + "&raw=1")
-			}else{
-				copyToClipboard(window.location.href + "?raw=1")
-			}
-
-		}
-
-	</script>
-
+        function showQRCode() {
+            const shareID = window.location.pathname.split('/').pop();
+            const modal = document.createElement('div');
+            modal.className = 'qr-modal';
+            modal.innerHTML = `
+                <div class="qr-modal-content">
+                    <img src="/qr/${shareID}" alt="QR Code for ${shareID}">
+                    <br>
+                    <button onclick="document.body.removeChild(this.parentElement.parentElement)">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+    </script>
 </head>
 <body>
-	
-	<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; padding: 10px; box-sizing: border-box;">
-
-		<div style="justify-content: center; width: calc(100% - 20px); flex: 1; overflow: auto;">
-			
-			<pre id="text" style="overflow: auto; word-break: normal; width: 100%; height: 100%; margin: 0">{{ .Text }}</pre>
-		
-		</div>
-
-		<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-
-			<button onclick="copy()" style="width: 200px;">Copy all</button>
-			{{ if ne .Burn "1" }}
-			<button onclick="getRawLink()" style="width: 200px;">Copy raw link</button>
-			{{ end }}
-		</div>
-
-		<button onclick="window.location.href = '/'" style="width: 200px">New</button>
-
-	</div>
-	
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; padding: 10px; box-sizing: border-box;">
+        <div style="justify-content: center; width: calc(100% - 20px); flex: 1; overflow: auto;">
+            <pre id="text" style="overflow: auto; word-break: normal; width: 100%; height: 100%; margin: 0; font-size: 1.6rem; padding: 1rem; background: var(--bg); color: var(--fg); border: 0.1rem dotted var(--fg); border-left: 0.2rem solid var(--fg);">{{ .Text }}</pre>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            <button onclick="copy()" class="rspText" style="width: 200px; padding: 0.4rem 1rem; font-size: 2rem; background: var(--bg); color: var(--fg); border: 0.2rem solid var(--fg); border-radius: 0; cursor: pointer;">Copy All</button>
+            {{ if ne .Burn "1" }}
+            <button onclick="getRawLink()" class="rspText" style="width: 200px; padding: 0.4rem 1rem; font-size: 2rem; background: var(--bg); color: var(--fg); border: 0.2rem solid var(--fg); border-radius: 0; cursor: pointer;">Copy Raw Link</button>
+            {{ end }}
+            <button onclick="showQRCode()" class="rspText" style="width: 200px; padding: 0.4rem 1rem; font-size: 2rem; background: var(--bg); color: var(--fg); border: 0.2rem solid var(--fg); border-radius: 0; cursor: pointer;">QR Code</button>
+        </div>
+        <button onclick="window.location.href = '/'" class="rspText" style="width: 200px; padding: 0.4rem 1rem; font-size: 2rem; background: var(--bg); color: var(--fg); border: 0.2rem solid var(--fg); border-radius: 0; cursor: pointer;">New</button>
+    </div>
 </body>
-
 </html>
