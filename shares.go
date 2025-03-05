@@ -13,8 +13,9 @@ import (
 type Share struct {
     ID         string    `json:"id"`
     Type       string    `json:"type"`       // "file" or "text"
-    Size       int       `json:"size"`       // Size in bytes (calculated from filePath if available)
+    Size       int       `json:"size"`       // Size in bytes
     Expiration time.Time `json:"expiration"` // Expiration timestamp
+    Host       string    `json:"host"`       // Host for URL construction (optional)
 }
 
 // ListShares retrieves all shares from the SQLite 'data' table
