@@ -1,58 +1,61 @@
-# SuperBin
-File sharing, url shortener and pastebin all in one place with QR code and curl support. Uses stream based cryptography and data processing that can handle gigabytes of data with fixed memory and cpu usage. It can run on anything including PaaS like repl.it or Render and is very easy to customize.  
+# ShareBin
+File sharing, URL shortener, and pastebin all in one place with QR code and curl support. Uses stream-based cryptography and data processing that can handle gigabytes of data with fixed memory and CPU usage. It can run on any platform, including PaaS like Replit or Render, and is highly customizable.  
 <ins>**Please star this project if you find it useful, thank you!**</ins>
 
-| ![](https://github.com/user-attachments/assets/d75999e5-736a-4ef4-80e8-c9a77079ed45) | ![](https://github.com/user-attachments/assets/80bab1ca-0685-4939-a999-8392d7c1bc8b) |
-|--------------------------------|--------------------------------|
-| ![](https://github.com/user-attachments/assets/34997223-8a08-4707-8490-9c9941f59141) | ![](https://github.com/user-attachments/assets/a54146fb-9c5f-46f2-a79b-c338e9272b53) |
+| Feature                          | Description                                      |
+|----------------------------------|--------------------------------------------------|
+| Mobile-friendly                  | Works in mobile browsers, supports file/text upload via Ctrl+V, drag and drop, file browsing, or terminal |
+| Authentication                   | Supports password authentication for both upload and download |
+| Easy Setup                       | Requires only `go build .` or use the `docker-compose.yaml` to get started |
+| Customizable                     | Easily modify styles by replacing `static/theme.css` with a file from [classless CSS](https://github.com/dbohdan/classless-css) or adjust the well-commented HTML layout |
+| Cross-Platform                   | Runs on any OS or deployment platforms like Replit, Render, Fly.io, etc. |
+| Secure Encryption                | Password-protected data secured with AES and PBKDF2 |
+| On-the-Fly Decryption            | Encrypted data is decrypted in memory, never written to disk |
+| Short, Unambiguous URLs          | Generates concise, collision-free URLs (omitting ambiguous characters like i, I, l, 1) |
+| QR Code Support                  | Quick sharing of files and URLs to/from mobile devices via QR codes |
+| Dashboard                        | View, filter, sort, and manage uploaded shares with a web-based dashboard |
 
+# Why ShareBin is Better :zap:
+ShareBin combines file sharing, URL shortening, and pastebin functionality with advanced features like QR code generation, secure encryption, and a user-friendly dashboard, making it ideal for personal and professional use.
 
-# Why it's better than other similar apps :zap:
-- works in mobile browsers, can upload file / text with ctrl+v, drag and drop, browse file or through terminal
-- Support password authentication (for both upload & download)
-- Extremely easy to set up, all you need is `go build .` or use the docker-compose.yaml and it's done
-- Very easy for modifications, don't like the style? pick a .css file from [here](https://github.com/dbohdan/classless-css) and replace the `static/theme.css`, don't like the layout? the html page is well commented and structured
-- Can run on any OS or deployment platforms like repl.it, render, fly.io, etc
-- Encryption done right, password protected data are secured with AES & pbkdf2
-- Decryption is done on the fly, the encrypted data is never decrypted to the disk
-- Short & unambiguous URL generation (with letters like ilI1 omitted) with collision detection
-- QR code support to quickly share files to / between mobile devices
+# URL Shortener 🔗
+Simply paste any valid URL (must start with `http://` or `https://`) into the text box and upload to create a short, shareable link.
 
-# URL shortener 🔗
-simply paste any valid url (must start with `http://` or `https://`) to the textbox and upload
+# Don’t Like How It Looks? 🎨
+Pick a `.css` file from [classless CSS](https://github.com/dbohdan/classless-css) and replace `static/theme.css`, or search for "classless CSS" to find other options. The HTML pages are well-commented and structured for easy customization.
 
-# Dont like how it looks? 🎨
-pick a .css file from [here](https://github.com/dbohdan/classless-css) and replace the `static/theme.css`, or search for "classless css"
-
-# How to build with docker :whale2:
-1. Download / clone this repo
-2. Make a folder called `uploads`
+# How to Build with Docker :whale2:
+1. Clone or download this repository
+2. Create a folder named `uploads`
 3. Run `docker compose up`
-   
-# How to build without docker 📟
-1. Download / clone this repo
-2. Open terminal
+
+# How to Build Without Docker 📟
+1. Clone or download this repository
+2. Open a terminal in the project directory
 3. Run `go build .`
 
 # Settings ⚙️
-You can modify the variables inside `data/settings.json`
-- `fileSizeLimitMB` = limit file size (in megabytes)
-- `textSizeLimitMB` = limit text size (in megabytes)
-- `streamSizeLimitKB` = limit file encryption, decryption, upload & download buffer stream size (in kb) to limit memory usage
-- `streamThrottleMS` = add throttle to the encryption, decryption, upload & download buffer to limit cpu usage
-- `pbkdf2Iterations` = key derivation algorithm iteration, the higher the better, but 100000 should be enough
-- `cmdUploadDefaultDurationMinute` = default file duration if you upload file through curl if duration is not specified
-- `enablePassword` = whether to enable password or not for site authentication
-- `password` = password value for site authentication, use a long password to deter attacks or use an external authentication server 
+You can modify the variables inside `data/settings.json`:
+- `FileSizeLimitMB`: Limit file size (in megabytes)
+- `TextSizeLimitMB`: Limit text size (in megabytes)
+- `StreamSizeLimitKB`: Limit file encryption, decryption, upload, and download buffer stream size (in KB) to control memory usage
+- `StreamThrottleMS`: Add a throttle to encryption, decryption, upload, and download buffers to limit CPU usage (in milliseconds)
+- `Pbkdf2Iterations`: Key derivation algorithm iterations; higher values increase security (e.g., 100,000 is recommended)
+- `CmdUploadDefaultDurationMinute`: Default file duration (in minutes) for curl uploads if duration isn’t specified
+- `enablePassword`: Enable or disable password protection for site authentication
+- `password`: Password value for site authentication; use a strong, long password or consider external authentication for enhanced security
 
-You can modify CPU/memory usage by calculating the memory usage / sec with `streamSizeLimitKB * (1000/streamThrottleMS)`, the default setting can handle 40 MB of data/second on file upload, download, encryption & decryption, you can tune this down if needed
+You can tune CPU/memory usage by calculating memory usage per second with `streamSizeLimitKB * (1000/streamThrottleMS)`. The default settings can handle 40 MB of data/second for file upload, download, encryption, and decryption—adjust as needed.
 
-# Curl upload ⬆️
-example: `curl -F file=@main.go -F duration=10 -F pass=123 -F burn=true https://yoursite.com`  
-Note that the duration, password, and burn is totally optional, you can just write `curl -F file=@file.txt https://yoursite.com` for quick upload. If your site is protected with a password, you also need to add `-F auth=yourpassword`
+# Curl Upload ⬆️
+Example: `curl -F file=@main.go -F duration=10 -F pass=123 -F burn=true https://yoursite.com`  
+Note: The `duration`, `pass`, and `burn` parameters are optional. For a quick upload, use `curl -F file=@file.txt https://yoursite.com`. If your site is password-protected, add `-F auth=yourpassword`.
 
 # Security 🔒
-For maximum security, it is recommended to encrypt your file before uploading
+For maximum security, encrypt your files before uploading. ShareBin uses AES and PBKDF2 for password-protected data, with on-the-fly decryption to prevent decrypted data from being written to disk.
 
 # Contribution 🤝
-Feel free to open an issue if you have a feature idea / send me a PR.
+Feel free to open an issue if you have a feature idea or send a pull request. Your contributions are welcome!
+
+# License
+This project is licensed under the GNU General Public License (GPL) v3 or later. See [LICENSE](LICENSE) for details.
