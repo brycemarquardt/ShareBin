@@ -1,142 +1,113 @@
 /*
-This file is part of GigaPaste.
+This file is part of ShareBin.
 
-GigaPaste is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ShareBin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-GigaPaste is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ShareBin is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with GigaPaste. If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with ShareBin. If not, see <https://www.gnu.org/licenses/>.
 */
 
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"slices"
-	"time"
+    "crypto/rand"
+    "encoding/base64"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "slices"
+    "time"
 )
 
 type Session struct {
-	Timer         *time.Timer
-	SessionString string
+    Timer         *time.Timer
+    SessionString string
 }
 
 var Sessions []Session = []Session{}
 
 func AuthHandler(w http.ResponseWriter, r *http.Request) {
+    var jsonData struct {
+        Key string `json:"key"`
+    }
 
-	var jsonData struct {
-		Key string `json:"key"`
-	}
+    decoder := json.NewDecoder(r.Body)
+    err := decoder.Decode(&jsonData)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
 
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&jsonData)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+    if jsonData.Key == Global.Password {
+        randomBytes := make([]byte, 32)
+        _, err := rand.Read(randomBytes)
+        if err != nil {
+            fmt.Println(err)
+        }
 
-	if jsonData.Key == Global.Password {
+        randomBytesString := base64.StdEncoding.EncodeToString(randomBytes)
 
-		randomBytes := make([]byte, 32)
-		_, err := rand.Read(randomBytes)
-		if err != nil {
-			fmt.Println(err)
-		}
+        timer := time.AfterFunc(24*time.Hour, func() {
+            for i, v := range Sessions {
+                if v.SessionString == randomBytesString {
+                    Sessions = slices.Delete(Sessions, i, i+1)
+                }
+            }
+        })
 
-		randomBytesString := base64.StdEncoding.EncodeToString(randomBytes)
+        Sessions = append(Sessions, Session{timer, randomBytesString})
+        http.SetCookie(w, &http.Cookie{
+            Name:     "session",
+            Value:    randomBytesString,
+            Expires:  time.Now().Add(24 * time.Hour),
+            HttpOnly: true,
+            Secure:   true,
+            Path:     "/",
+        })
 
-		timer := time.AfterFunc(24*time.Hour, func() {
-
-			for i, v := range Sessions {
-
-				if v.SessionString == randomBytesString {
-
-					Sessions = slices.Delete(Sessions, i, i+1)
-
-				}
-
-			}
-
-		})
-
-		Sessions = append(Sessions, Session{timer, randomBytesString})
-		http.SetCookie(w, &http.Cookie{
-
-			Name:     "session",
-			Value:    randomBytesString,
-			Expires:  time.Now().Add(24 * time.Hour),
-			HttpOnly: true,
-			Secure:   true,
-			Path:     "/",
-		})
-
-		_, err = io.WriteString(w, "done")
-		if err != nil {
-			fmt.Println(err)
-		}
-
-	} else {
-
-		_, err = io.WriteString(w, "wrong")
-		if err != nil {
-			fmt.Println(err)
-		}
-
-	}
-
+        _, err = io.WriteString(w, "done")
+        if err != nil {
+            fmt.Println(err)
+        }
+    } else {
+        _, err = io.WriteString(w, "wrong")
+        if err != nil {
+            fmt.Println(err)
+        }
+    }
 }
 
 func ValidateSession(w http.ResponseWriter, r *http.Request) bool {
+    if !Global.EnablePassword {
+        return true
+    }
 
-	if !Global.EnablePassword {
+    cookie, err := r.Cookie("session")
+    if err != nil {
+        return false
+    }
 
-		return true
+    for _, v := range Sessions {
+        if v.SessionString == cookie.Value {
+            return true
+        }
+    }
 
-	}
-
-	cookie, err := r.Cookie("session")
-	if err != nil {
-
-		return false
-
-	}
-
-	for _, v := range Sessions {
-
-		if v.SessionString == cookie.Value {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
+    return false
 }
 
 func DeleteSession(w http.ResponseWriter, r *http.Request) {
+    cookie, err := r.Cookie("session")
+    if err != nil {
+        return
+    }
 
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		return
-	}
-
-	for i, v := range Sessions {
-
-		if v.SessionString == cookie.Value {
-
-			v.Timer.Stop()
-			Sessions = slices.Delete(Sessions, i, i+1)
-
-		}
-
-	}
-
+    for i, v := range Sessions {
+        if v.SessionString == cookie.Value {
+            v.Timer.Stop()
+            Sessions = slices.Delete(Sessions, i, i+1)
+        }
+    }
 }
