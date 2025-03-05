@@ -1,3 +1,12 @@
+<!--
+This file is part of ShareBin.
+
+ShareBin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+ShareBin is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with ShareBin. If not, see <https://www.gnu.org/licenses/>.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,8 +57,8 @@
                 <td>{{.Size}}</td>
                 <td>{{.Expiration}}</td>
                 <td>
-                    <a href="/s/{{.ID}}" target="_blank">Link</a>
-                    <button onclick="alert('QR Code generation not implemented yet')">QR Code</button>
+                    <a href="/{{.ID}}" target="_blank">Link</a>
+                    <button onclick="window.open('/qr/{{.ID}}', '_blank')">QR Code</button>
                 </td>
             </tr>
             {{end}}
