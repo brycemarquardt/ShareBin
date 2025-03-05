@@ -2,6 +2,8 @@ package main
 
 import (
     "database/sql"
+    "os"
+    "path/filepath"
     "sort"
     "strconv"
     "time"
@@ -11,15 +13,15 @@ import (
 type Share struct {
     ID         string    `json:"id"`
     Type       string    `json:"type"`       // "file" or "text"
-    Size       int       `json:"size"`       // Size in bytes (approximated if not stored)
+    Size       int       `json:"size"`       // Size in bytes (calculated from filePath if available)
     Expiration time.Time `json:"expiration"` // Expiration timestamp
 }
 
 // ListShares retrieves all shares from the SQLite 'data' table
 func ListShares(db *sql.DB) ([]Share, error) {
     var shares []Share
-    // Query non-expired shares; expire is number of minutes from upload time
-    rows, err := db.Query("SELECT id, type, expire FROM data")
+    // Query non-expired shares; expire is a Unix timestamp
+    rows, err := db.Query("SELECT id, type, filePath, expire FROM data WHERE expire > ?", time.Now().Unix())
     if err != nil {
         return nil, err
     }
@@ -27,23 +29,21 @@ func ListShares(db *sql.DB) ([]Share, error) {
 
     for rows.Next() {
         var share Share
-        var expireMinutesStr string
-        if err := rows.Scan(&share.ID, &share.Type, &expireMinutesStr); err != nil {
+        var expireInt int64
+        var filePath string
+        if err := rows.Scan(&share.ID, &share.Type, &filePath, &expireInt); err != nil {
             continue
         }
-        // Convert expire (TEXT, number of minutes) to integer
-        expireMinutes, err := strconv.ParseInt(expireMinutesStr, 10, 64)
-        if err != nil {
-            continue
+        share.Expiration = time.Unix(expireInt, 0)
+        // Calculate size from filePath if it exists
+        if filePath != "" {
+            fullPath := filepath.Join("uploads", filePath)
+            fileInfo, err := os.Stat(fullPath)
+            if err == nil {
+                share.Size = int(fileInfo.Size())
+            }
         }
-        // Calculate expiration as current time plus minutes
-        share.Expiration = time.Now().Add(time.Duration(expireMinutes) * time.Minute)
-        // Size isn’t in 'data'; set to 0 or calculate from filePath if needed
-        share.Size = 0 // Placeholder
-        // Only include non-expired shares (expiration > now)
-        if share.Expiration.After(time.Now()) {
-            shares = append(shares, share)
-        }
+        shares = append(shares, share)
     }
     return shares, nil
 }
