@@ -122,4 +122,6 @@ func GenerateSalt() ([]byte, error) {
     return salt, nil
 }
 
-func Generate
+func GeneratePasswordHash(password string, salt []byte) []byte {
+    return pbkdf2.Key([]byte(password), salt, Global.Pbkdf2Iterations, 32, sha256.New) // Updated field name
+}
