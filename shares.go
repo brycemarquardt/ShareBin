@@ -10,14 +10,14 @@ import (
 type Share struct {
     ID         string    `json:"id"`
     Type       string    `json:"type"`       // "file" or "text"
-    Size       int       `json:"size"`       // Size in bytes
+    Size       int       `json:"size"`       // Size in bytes (derived or approximated)
     Expiration time.Time `json:"expiration"` // Expiration timestamp
 }
 
-// ListShares retrieves all shares from the SQLite database
+// ListShares retrieves all shares from the SQLite 'data' table
 func ListShares(db *sql.DB) ([]Share, error) {
     var shares []Share
-    rows, err := db.Query("SELECT id, type, size, expiration FROM shares WHERE expiration > ?", time.Now().Unix())
+    rows, err := db.Query("SELECT id, type, expire FROM data WHERE expire > ?", time.Now().Unix())
     if err != nil {
         return nil, err
     }
@@ -25,14 +25,27 @@ func ListShares(db *sql.DB) ([]Share, error) {
 
     for rows.Next() {
         var share Share
-        var expiration int64
-        if err := rows.Scan(&share.ID, &share.Type, &share.Size, &expiration); err != nil {
+        var expireStr string
+        if err := rows.Scan(&share.ID, &share.Type, &expireStr); err != nil {
             continue
         }
-        share.Expiration = time.Unix(expiration, 0)
+        // Convert expire (TEXT) to time.Time
+        expireInt, err := parseExpiration(expireStr)
+        if err != nil {
+            continue
+        }
+        share.Expiration = time.Unix(expireInt, 0)
+        // Size isn’t in 'data' table; approximate or fetch from file if needed
+        share.Size = 0 // Placeholder; update if size is calculable
         shares = append(shares, share)
     }
     return shares, nil
+}
+
+// parseExpiration converts the expire TEXT field to Unix timestamp
+func parseExpiration(expireStr string) (int64, error) {
+    // Assuming expire is stored as Unix timestamp string; adjust if format differs
+    return time.Parse("2006-01-02 15:04:05", expireStr).Unix()
 }
 
 // FilterSharesByType filters shares by type (e.g., "file" or "text")
