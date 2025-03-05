@@ -18,8 +18,8 @@ type Share struct {
 // ListShares retrieves all shares from the SQLite 'data' table
 func ListShares(db *sql.DB) ([]Share, error) {
     var shares []Share
-    // Query non-expired shares; expire is TEXT, so we compare as string or convert
-    rows, err := db.Query("SELECT id, type, expire FROM data WHERE expire > ?", strconv.FormatInt(time.Now().Unix(), 10))
+    // Query non-expired shares; expire is number of minutes from upload time
+    rows, err := db.Query("SELECT id, type, expire FROM data")
     if err != nil {
         return nil, err
     }
@@ -27,20 +27,23 @@ func ListShares(db *sql.DB) ([]Share, error) {
 
     for rows.Next() {
         var share Share
-        var expireStr string
-        if err := rows.Scan(&share.ID, &share.Type, &expireStr); err != nil {
+        var expireMinutesStr string
+        if err := rows.Scan(&share.ID, &share.Type, &expireMinutesStr); err != nil {
             continue
         }
-        // Convert expire (TEXT) to time.Time
-        expireInt, err := strconv.ParseInt(expireStr, 10, 64)
+        // Convert expire (TEXT, number of minutes) to integer
+        expireMinutes, err := strconv.ParseInt(expireMinutesStr, 10, 64)
         if err != nil {
-            // If expire isn’t a Unix timestamp, adjust parsing logic below
             continue
         }
-        share.Expiration = time.Unix(expireInt, 0)
+        // Calculate expiration as current time plus minutes
+        share.Expiration = time.Now().Add(time.Duration(expireMinutes) * time.Minute)
         // Size isn’t in 'data'; set to 0 or calculate from filePath if needed
         share.Size = 0 // Placeholder
-        shares = append(shares, share)
+        // Only include non-expired shares (expiration > now)
+        if share.Expiration.After(time.Now()) {
+            shares = append(shares, share)
+        }
     }
     return shares, nil
 }
