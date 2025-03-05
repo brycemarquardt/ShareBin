@@ -1,50 +1,60 @@
 /*
-This file is part of GigaPaste.
+This file is part of ShareBin.
 
-GigaPaste is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ShareBin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-GigaPaste is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ShareBin is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with GigaPaste. If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with ShareBin. If not, see <https://www.gnu.org/licenses/>.
 */
 
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	_ "modernc.org/sqlite"
+    "database/sql"
+    "fmt"
+    _ "modernc.org/sqlite"
 )
 
 func InitDatabase() *sql.DB {
+    db, err := sql.Open("sqlite", "file:./data/sharebin.db?cache=shared")
+    if err != nil {
+        fmt.Println("Failed to open database:", err)
+        return nil
+    }
 
-	db, err := sql.Open("sqlite", "file:./data/database.db?cache=shared")
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+    db.SetMaxOpenConns(1)
 
-	db.SetMaxOpenConns(1)
-
-	// Create a table
-	createTableSQL := `CREATE TABLE IF NOT EXISTS data (
+    // Create the existing 'data' table
+    createDataTableSQL := `CREATE TABLE IF NOT EXISTS data (
         id TEXT NOT NULL,
         type TEXT NOT NULL,
         fileName TEXT NOT NULL,
-		filePath TEXT NOT NULL,
-		burn TEXT NOT NULL,
-		expire TEXT NOT NULL,
-		passwordHash TEXT NOT NULL,
-		passwordSalt TEXT NOT NULL,
-		encryptSalt TEXT NOT NULL
+        filePath TEXT NOT NULL,
+        burn TEXT NOT NULL,
+        expire TEXT NOT NULL,
+        passwordHash TEXT NOT NULL,
+        passwordSalt TEXT NOT NULL,
+        encryptSalt TEXT NOT NULL
     );`
+    _, err = db.Exec(createDataTableSQL)
+    if err != nil {
+        fmt.Println("Failed to create data table:", err)
+        return nil
+    }
 
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+    // Create the new 'shares' table for dashboard
+    createSharesTableSQL := `CREATE TABLE IF NOT EXISTS shares (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        expiration INTEGER NOT NULL
+    );`
+    _, err = db.Exec(createSharesTableSQL)
+    if err != nil {
+        fmt.Println("Failed to create shares table:", err)
+        return nil
+    }
 
-	return db
-
+    return db
 }
