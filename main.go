@@ -65,6 +65,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
     shares, err := ListShares(db)
     if err != nil {
+        log.Printf("ShareBin: Error listing shares: %v", err)
         http.Error(w, "Error listing shares", http.StatusInternalServerError)
         return
     }
@@ -81,6 +82,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
     tmpl, err := template.ParseFiles("templates/dashboard.html")
     if err != nil {
+        log.Printf("ShareBin: Error parsing dashboard template: %v", err)
         http.Error(w, "Error parsing template", http.StatusInternalServerError)
         return
     }
@@ -89,6 +91,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
         Host   string
     }{Shares: shares, Host: r.Host}
     if err := tmpl.Execute(w, data); err != nil {
+        log.Printf("ShareBin: Error rendering dashboard template: %v", err)
         http.Error(w, "Error rendering template", http.StatusInternalServerError)
     }
 }
@@ -96,6 +99,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 func generateQRCode(w http.ResponseWriter, url string) error {
     qr, err := qrcode.Encode(url, qrcode.Medium, 256)
     if err != nil {
+        log.Printf("ShareBin: Failed to generate QR code for URL %s: %v", url, err)
         return err
     }
     w.Header().Set("Content-Type", "image/png")
@@ -104,21 +108,29 @@ func generateQRCode(w http.ResponseWriter, url string) error {
 }
 
 func main() {
+    // Set up logging to a file
+    logFile, err := os.OpenFile("sharebin.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        log.Fatal("ShareBin: Failed to open log file: ", err)
+    }
+    defer logFile.Close()
+    log.SetOutput(logFile)
+
     if _, err := os.Stat("./uploads/"); os.IsNotExist(err) {
         err := os.MkdirAll("./uploads", os.ModePerm)
         if err != nil {
-            fmt.Println(err)
+            log.Printf("ShareBin: Failed to create uploads directory: %v", err)
         }
     }
 
     if _, err := os.Stat("./data/"); os.IsNotExist(err) {
         err := os.MkdirAll("./data", os.ModePerm)
         if err != nil {
-            fmt.Println(err)
+            log.Printf("ShareBin: Failed to create data directory: %v", err)
         }
         err = os.WriteFile("./data/settings.json", []byte(settingsFile), 0644)
         if err != nil {
-            fmt.Println(err)
+            log.Printf("ShareBin: Failed to write settings.json: %v", err)
             return
         }
     }
@@ -144,7 +156,7 @@ func main() {
                 if r.MultipartForm != nil {
                     err := r.MultipartForm.RemoveAll()
                     if err != nil {
-                        fmt.Println(err)
+                        log.Printf("ShareBin: Failed to clean up multipart form: %v", err)
                     }
                 }
             }()
@@ -153,16 +165,18 @@ func main() {
                     http.Error(w, "SizeExceeded", http.StatusInternalServerError)
                     return
                 }
-                fmt.Println(err)
+                log.Printf("ShareBin: Error parsing multipart form: %v", err)
                 return
             }
             if !ValidateSession(w, r) {
                 if len(r.MultipartForm.Value["auth"]) > 0 {
                     auth := r.MultipartForm.Value["auth"][0]
                     if auth != Global.Password {
+                        http.Error(w, "Unauthorized", http.StatusUnauthorized)
                         return
                     }
                 } else {
+                    http.Error(w, "Unauthorized", http.StatusUnauthorized)
                     return
                 }
             }
@@ -173,6 +187,7 @@ func main() {
     http.HandleFunc("/postText", func(w http.ResponseWriter, r *http.Request) {
         if r.Method == http.MethodPost {
             if !ValidateSession(w, r) {
+                http.Error(w, "Unauthorized", http.StatusUnauthorized)
                 return
             }
             r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*Global.TextSizeLimit)
@@ -199,6 +214,7 @@ func main() {
     http.HandleFunc("/qr/", func(w http.ResponseWriter, r *http.Request) {
         shareID := strings.TrimPrefix(r.URL.Path, "/qr/")
         if shareID == "" {
+            log.Printf("ShareBin: Missing share ID in QR code request")
             http.Error(w, "Missing share ID", http.StatusBadRequest)
             return
         }
@@ -215,6 +231,7 @@ func main() {
         // Generate and serve QR code
         err := generateQRCode(w, fullURL)
         if err != nil {
+            log.Printf("ShareBin: Failed to generate QR code for URL %s: %v", fullURL, err)
             http.Error(w, "Failed to generate QR code", http.StatusInternalServerError)
         }
     })
@@ -226,15 +243,17 @@ func main() {
         sigChan := make(chan os.Signal, 1)
         signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
         <-sigChan
-        fmt.Println("Shutting down ShareBin")
+        log.Printf("ShareBin: Shutting down server")
         if err := server.Close(); err != nil {
-            fmt.Println(err)
+            log.Printf("ShareBin: Error shutting down server: %v", err)
         }
         if err := db.Close(); err != nil {
-            fmt.Println(err)
+            log.Printf("ShareBin: Error closing database: %v", err)
         }
     }()
 
-    log.Println("ShareBin server running")
-    log.Fatal(server.ListenAndServe())
+    log.Println("ShareBin server running on port 80")
+    if err := server.ListenAndServe(); err != nil {
+        log.Fatalf("ShareBin: Failed to start server: %v", err)
+    }
 }
