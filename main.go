@@ -116,15 +116,24 @@ func main() {
     defer logFile.Close()
     log.SetOutput(logFile)
 
-    if _, err := os.Stat("./uploads/"); os.IsNotExist(err) {
-        err := os.MkdirAll("./uploads", os.ModePerm)
+    // Ensure uploads directory exists with appropriate permissions
+    uploadsDir := "./uploads"
+    if _, err := os.Stat(uploadsDir); os.IsNotExist(err) {
+        err = os.MkdirAll(uploadsDir, 0755) // Use 0755 for read/write/execute by owner, read/execute by others
         if err != nil {
-            log.Printf("ShareBin: Failed to create uploads directory: %v", err)
+            log.Printf("ShareBin: Failed to create uploads directory %s: %v", uploadsDir, err)
+            return
+        }
+    } else {
+        // Ensure correct permissions (0755)
+        err = os.Chmod(uploadsDir, 0755)
+        if err != nil {
+            log.Printf("ShareBin: Failed to set permissions on uploads directory %s: %v", uploadsDir, err)
         }
     }
 
     if _, err := os.Stat("./data/"); os.IsNotExist(err) {
-        err := os.MkdirAll("./data", os.ModePerm)
+        err := os.MkdirAll("./data", 0755)
         if err != nil {
             log.Printf("ShareBin: Failed to create data directory: %v", err)
         }
@@ -132,6 +141,12 @@ func main() {
         if err != nil {
             log.Printf("ShareBin: Failed to write settings.json: %v", err)
             return
+        }
+    } else {
+        // Ensure correct permissions (0755) for data directory
+        err = os.Chmod("./data", 0755)
+        if err != nil {
+            log.Printf("ShareBin: Failed to set permissions on data directory: %v", err)
         }
     }
 
